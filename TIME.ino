@@ -1,31 +1,36 @@
-#include <DHT.h>
 #include <Wire.h>
-#include <LiquidCrystal.h>
+#include "SparkFunHTU21D.h"
+#include <LiquidCrystal_I2C.h>
 
-#define pinDHT22 9
 #define I2C_ADDRESS 0x68
 #define NubberOfFields 7
 
-DHT dht(pinDHT22, DHT22);
-LiquidCrystal lcd( 8, 7, 6, 5, 4, 3);                  // RS ,En ,D4 ,D5 ,D6 ,D7
-/*LCD R/W pin to ground
-  A variable resistor ends to +5V and ground
-  wiper to LCD Vo pin (pin3)*/
+#define mdisplayButton 10 // measurement display button (SD3)
+
+// HTU21D sensor config.
+HTU21D HTU;
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);       // PCF8574 0x27, PCF8574A 0x3F
 
 const char week[7][4] = { "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN" };
 const char month[12][4] = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
 uint16_t y;                                     // 年
 uint8_t m, d, w, h, mi, s;                      // 月/日/週/時/分/秒
+uint8_t curDay = 0;
 
 uint8_t bcdTodec(uint8_t val);
 void getTime();
 void digitalClockDisplay();
-void TempHumiDisplay();
+void measurementDisplay();
 
 void setup() {
+  pinMode(mdisplayButton, INPUT);
+  
   Wire.begin();
-
-  lcd.begin(16, 2);
+  HTU.begin();
+  
+  lcd.begin();
+  lcd.backlight();
   lcd.clear();
   lcd.setCursor(2, 0);
   lcd.print("Now loading");
@@ -40,49 +45,43 @@ void setup() {
 
   lcd.clear();
   lcd.print("READ SENSOR");
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
-  if (isnan(h) || isnan(t)) {
+  float temp = HTU.readTemperature();
+  float humi = HTU.readHumidity();
+  // Errors 998 if not sensor is detected. Error 999 if CRC is bad.
+  if ( temp >= 998 || humi >= 998 ) {
     lcd.setCursor(11, 1);
     lcd.print("ERROR");
     delay(1000);
   }
-  else
-  {
+  else {
     lcd.setCursor(14, 1);
     lcd.print("OK");
     delay(1000);
   }
+  lcd.clear();
 }
-  void loop() {
-    boolean dhtBotton = digitalRead(10);
 
-    getTime();               // 取得時間
-    digitalClockDisplay(); // 顯示時間
-
-    if (dhtBotton == HIGH) {
-      dht.readTemperature();
-      dht.readHumidity();
-      for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
-        // scroll one position left:
-        lcd.scrollDisplayLeft();
-        // wait a bit:
-        delay(200);
-      }
-    
-    TempHumiDisplay();
-      
-      for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
-        // scroll one position left:
-        lcd.scrollDisplayLeft();
-        // wait a bit:
-        delay(200);
-      }
-      boolean DHT11Botton = LOW;
+void loop() {
+  getTime();               // 取得時間
+  digitalClockDisplay();   // 顯示時間
+  
+  if (digitalRead(mdisplayButton)) {
+    for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
+      lcd.scrollDisplayLeft();  // scroll one position left
+      delay(200); // wait a bit
     }
-    delay(1000);
+  
+    measurementDisplay();
+    
+    for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
+      lcd.scrollDisplayLeft();  // scroll one position left
+      delay(200); // wait a bit
+    }
+    lcd.clear();
+    curDay = 0;
   }
+  delay(1000);
+}
   
 /*BCD 轉 DEC*/
 uint8_t bcdTodec(uint8_t val) {
@@ -107,23 +106,28 @@ void getTime() {
 
 /*顯示時間*/
 void digitalClockDisplay() {
-  m -= 1;
-  if (m >= 0 && m <= 11) {
-    for (uint8_t f = 0; f < 3; f++) {
-      lcd.print(month[m][f]);
+  if( curDay != d ){
+    lcd.clear();
+    m -= 1;
+    if (m >= 0 && m <= 11) {
+      for (uint8_t f = 0; f < 3; f++) {
+        lcd.print(month[m][f]);
+      }
     }
-  }
-  lcd.print(" ");
-  lcd.print(d);
-  lcd.print(" ");
-  lcd.print(y);
-  lcd.setCursor(12, 0);
-  w -= 1;
-  if (w >= 0 && w <= 6) {
-    for (uint8_t e = 0; e < 3; e++) {
-      lcd.print(week[w][e]);
+    lcd.print(" ");
+    lcd.print(d);
+    lcd.print(" ");
+    lcd.print(y);
+    lcd.setCursor(12, 0);
+    w -= 1;
+    if (w >= 0 && w <= 6) {
+      for (uint8_t e = 0; e < 3; e++) {
+        lcd.print(week[w][e]);
+      }
     }
+    curDay = d;
   }
+  
   lcd.setCursor(4, 1);
 
   if (h < 10) {
@@ -148,29 +152,31 @@ void digitalClockDisplay() {
 }
 
 /*顯示溫濕度*/
-void TempHumiDisplay(){
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
+void measurementDisplay(){
+  int temp = HTU.readTemperature();
+  int humi = HTU.readHumidity();
+  
   lcd.clear();
-  if (isnan(h) || isnan(t)) {
-       lcd.println("Read DHT22 failed");
-       lcd.setCursor(11, 1);
-       lcd.print("ERROR");
-       delay(1000);
-     } 
+  // Errors 998 if not sensor is detected. Error 999 if CRC is bad.
+  if ( temp >= 998 || humi >= 998 ) {
+     lcd.setCursor(6, 0);
+     lcd.print("ERROR");
+     lcd.setCursor(1, 1);
+     lcd.print("SENSOR OFFLINE");
+     delay(1000);
+   }
    else {
-       lcd.print("Temperature");
-       lcd.setCursor(12, 0);
-       lcd.print((int)t);
-       lcd.print((char)0xDF);
-       lcd.print("C");
-       lcd.setCursor(0, 1);
-       lcd.print("Humidity");
-       lcd.setCursor(12, 1);
-       lcd.print((int)h);
-       lcd.setCursor(15, 1);
-       lcd.print("%");
-       delay(2000);
-     }
+     lcd.print("Temperature");
+     lcd.setCursor(12, 0);
+     lcd.print(temp);
+     lcd.print((char)0xDF);
+     lcd.print("C");
+     lcd.setCursor(0, 1);
+     lcd.print("Humidity");
+     lcd.setCursor(12, 1);
+     lcd.print(humi);
+     lcd.setCursor(15, 1);
+     lcd.print("%");
+     delay(2000);
+  }
 }
