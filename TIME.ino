@@ -1,23 +1,17 @@
-/*
- Name:    Sketch1.ino
- Created: 2017/7/14 下午 10:26:35
- Author:  R.John
-*/
 
 #include <Wire.h>
-#include <dht11.h>
+#include <SimpleDHT.h>
 #include <LiquidCrystal.h>
 
 LiquidCrystal lcd(8, 7, 6, 5, 4, 3);                  // RS ,En ,D4 ,D5 ,D6 ,D7
-                            /*LCD R/W pin to ground
-                            A variable resistor ends to +5V and ground
-                            wiper to LCD Vo pin (pin3)*/
+/*LCD R/W pin to ground
+  A variable resistor ends to +5V and ground
+  wiper to LCD Vo pin (pin3)*/
 
-dht11 DHT11;
+SimpleDHT22 dht22;
+const uint8_t pinDHT22 = 9;
 
-const uint8_t DHT11pin = 9;
-
-const uint8_t DS1307_I2C_ADDRESS = 0x68;  // DS1307 or DS3231 (I2C) 地址
+const uint8_t I2C_ADDRESS = 0x68;               // DS1307 or DS3231 (I2C) 地址
 const uint8_t NubberOfFields = 7;                   // DS1307 or DS3231 (I2C) 資料範圍
 uint16_t y;                                                   // 年
 uint8_t m, d, w, h, mi, s;                               // 月/日/週/時/分/秒
@@ -29,12 +23,12 @@ uint8_t bcdTodec(uint8_t val) {
   return ((val / 16 * 10) + (val % 16));
 }
 
-/*自DS1307取得時間*/
+/*自DS1307 or DS3231 取得時間*/
 void getTime() {
-  Wire.beginTransmission(DS1307_I2C_ADDRESS);
+  Wire.beginTransmission(I2C_ADDRESS);
   Wire.write(0);
   Wire.endTransmission();
-  Wire.requestFrom(DS1307_I2C_ADDRESS, NubberOfFields);
+  Wire.requestFrom(I2C_ADDRESS, NubberOfFields);
 
   s = bcdTodec(Wire.read() & 0x7f);
   mi = bcdTodec(Wire.read());
@@ -102,60 +96,67 @@ void setup() {
 
   lcd.clear();
   lcd.print("READ SENSOR");
-  int8_t chk = DHT11.read(DHT11pin);
 
+  byte temperature = 0;
+  byte humidity = 0;
+  int8_t err = SimpleDHTErrSuccess;
 
-  switch (chk)
-  {
-  case 0:
-    lcd.setCursor(14, 1);
-    lcd.print("OK");
-    break;
-  default:
+  if ((err = dht22.read(pinDHT22, &temperature, &humidity, NULL)) != SimpleDHTErrSuccess) {
     lcd.setCursor(11, 1);
     lcd.print("ERROR");
-    break;
+    delay(1000);
   }
-  delay(1000);
+  else
+  {
+    lcd.setCursor(14, 1);
+    lcd.print("OK");
+    delay(1000);
+  }
 }
-
-void loop() {
-  boolean DHT11Botton = digitalRead(10);
-  getTime();               // 取得時間
-  lcd.clear();
-
-  digitalClockDisplay(); // 顯示時間
-
-
-  if (DHT11Botton == HIGH) {
-    for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
-      // scroll one position left:
-      lcd.scrollDisplayLeft();
-      // wait a bit:
-      delay(200);
-    }
-    int8_t chk = DHT11.read(DHT11pin);
+  void loop() {
+    boolean dhtBotton = digitalRead(10);
+    getTime();               // 取得時間
     lcd.clear();
-    lcd.print("Temperature");
-    lcd.setCursor(12, 0);
-    lcd.print((int)DHT11.temperature);
-    lcd.print((char)0xDF);
-    lcd.print("C");
-    lcd.setCursor(0, 1);
-    lcd.print("Humidity");
-    lcd.setCursor(12, 1);
-    lcd.print((int)DHT11.humidity);
-    lcd.setCursor(15, 1);
-    lcd.print("%");
-    delay(2000);
 
-    for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
-      // scroll one position left:
-      lcd.scrollDisplayLeft();
-      // wait a bit:
-      delay(200);
+    digitalClockDisplay(); // 顯示時間
+
+
+    if (dhtBotton == HIGH) {
+      for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
+        // scroll one position left:
+        lcd.scrollDisplayLeft();
+        // wait a bit:
+        delay(200);
+      }
+      byte temperature = 0;
+      byte humidity = 0;
+      int8_t  err = SimpleDHTErrSuccess;
+      lcd.clear();
+      if ((err = dht22.read(pinDHT22, &temperature, &humidity, NULL)) != SimpleDHTErrSuccess) {
+        lcd.println("Read DHT22 failed, err=");
+        lcd.print(err);
+        delay(1000);
+      } else {
+        lcd.print("Temperature");
+        lcd.setCursor(12, 0);
+        lcd.print((int)temperature);
+        lcd.print((char)0xDF);
+        lcd.print("C");
+        lcd.setCursor(0, 1);
+        lcd.print("Humidity");
+        lcd.setCursor(12, 1);
+        lcd.print((int)humidity);
+        lcd.setCursor(15, 1);
+        lcd.print("%");
+        delay(2000);
+      }
+      for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
+        // scroll one position left:
+        lcd.scrollDisplayLeft();
+        // wait a bit:
+        delay(200);
+      }
+      boolean DHT11Botton = LOW;
     }
-    boolean DHT11Botton = LOW;
+    delay(1000);
   }
-  delay(1000);
-}
