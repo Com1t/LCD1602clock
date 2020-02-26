@@ -15,8 +15,8 @@
 #define syncLED 12 // time sync LED (D6)
 #define powerLED 13 // power LED (D7)
 
-const char *ssid     = "ASUS-G";
-const char *password = "0922235662";
+const char *ssid     = "******";
+const char *password = "******";
 
 // Define NTP Client to get time
 WiFiUDP ntpUDP;
