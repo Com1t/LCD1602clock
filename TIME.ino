@@ -1,11 +1,17 @@
+/*
+ Name:    Sketch1.ino
+ Created: 2017/7/14 下午 10:26:35
+ Author:  R.John
+*/
+
 #include <Wire.h>
 #include <dht11.h>
 #include <LiquidCrystal.h>
 
-LiquidCrystal lcd( 8, 7, 6, 5, 4, 3);                  // RS ,En ,D4 ,D5 ,D6 ,D7
-/*LCD R/W pin to ground
-   A variable resistor ends to +5V and ground
-   wiper to LCD Vo pin (pin3)*/
+LiquidCrystal lcd(8, 7, 6, 5, 4, 3);                  // RS ,En ,D4 ,D5 ,D6 ,D7
+                            /*LCD R/W pin to ground
+                            A variable resistor ends to +5V and ground
+                            wiper to LCD Vo pin (pin3)*/
 
 dht11 DHT11;
 
@@ -15,8 +21,8 @@ const uint8_t DS1307_I2C_ADDRESS = 0x68;  // DS1307 or DS3231 (I2C) 地址
 const uint8_t NubberOfFields = 7;                   // DS1307 or DS3231 (I2C) 資料範圍
 uint16_t y;                                                   // 年
 uint8_t m, d, w, h, mi, s;                               // 月/日/週/時/分/秒
-char week[7][4] = {"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
-char month[12][4] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+char week[7][4] = { "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN" };
+char month[12][4] = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
 
 /*BCD 轉 DEC*/
 uint8_t bcdTodec(uint8_t val) {
@@ -30,13 +36,13 @@ void getTime() {
   Wire.endTransmission();
   Wire.requestFrom(DS1307_I2C_ADDRESS, NubberOfFields);
 
-  s    = bcdTodec(Wire.read() & 0x7f);
-  mi  = bcdTodec(Wire.read());
-  h    = bcdTodec(Wire.read() & 0x7f);
-  w   = bcdTodec(Wire.read());
-  d    = bcdTodec(Wire.read());
-  m   = bcdTodec(Wire.read());
-  y    = bcdTodec(Wire.read()) + 2000;
+  s = bcdTodec(Wire.read() & 0x7f);
+  mi = bcdTodec(Wire.read());
+  h = bcdTodec(Wire.read() & 0x7f);
+  w = bcdTodec(Wire.read());
+  d = bcdTodec(Wire.read());
+  m = bcdTodec(Wire.read());
+  y = bcdTodec(Wire.read()) + 2000;
 }
 
 /*顯示時間*/
@@ -64,7 +70,7 @@ void digitalClockDisplay() {
     lcd.print("0");
   }
   lcd.print(h);
-  lcd.print(":");  
+  lcd.print(":");
   if (mi < 10) {
     lcd.print("0");
   }
@@ -101,25 +107,25 @@ void setup() {
 
   switch (chk)
   {
-    case 0:
-      lcd.setCursor(14, 1);
-      lcd.print("OK");
-      break;
-    default:
-      lcd.setCursor(11, 1);
-      lcd.print("ERROR");
-      break;
+  case 0:
+    lcd.setCursor(14, 1);
+    lcd.print("OK");
+    break;
+  default:
+    lcd.setCursor(11, 1);
+    lcd.print("ERROR");
+    break;
   }
   delay(1000);
 }
 
 void loop() {
-  int8_t chk = DHT11.read(DHT11pin);
   boolean DHT11Botton = digitalRead(10);
-
-  lcd.clear();
   getTime();               // 取得時間
+  lcd.clear();
+
   digitalClockDisplay(); // 顯示時間
+
 
   if (DHT11Botton == HIGH) {
     for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
@@ -128,7 +134,7 @@ void loop() {
       // wait a bit:
       delay(200);
     }
-
+    int8_t chk = DHT11.read(DHT11pin);
     lcd.clear();
     lcd.print("Temperature");
     lcd.setCursor(12, 0);
