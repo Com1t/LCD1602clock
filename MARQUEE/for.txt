@@ -1,0 +1,8 @@
+
+   for(i=10;i>=1;i--)
+   {
+    digitalWrite(i, HIGH);
+    delay(100);
+    digitalWrite(i, LOW);
+   }
+ } 

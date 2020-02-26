@@ -1,0 +1,26 @@
+  if (dht11Botton == HIGH) {
+
+    for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
+      // scroll one position left:
+      lcd.scrollDisplayLeft();
+      // wait a bit:
+      delay(200);
+    }
+
+    lcd.print("Temperature ");
+    lcd.print((int)dht11.temperature);
+    lcd.print((char)0xDF);
+    lcd.print("C");
+    lcd.setCursor(0, 1);
+    lcd.print("Humidity    ");
+    lcd.print((int)dht11.humidity);
+    lcd.print(" %");
+    delay(500);
+    
+    for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
+      // scroll one position left:
+      lcd.scrollDisplayLeft();
+      // wait a bit:
+      delay(200);
+    }
+  }
