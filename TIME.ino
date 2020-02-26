@@ -57,11 +57,13 @@ void setup() {
 }
   void loop() {
     boolean dhtBotton = digitalRead(10);
+
     getTime();               // 取得時間
-    
     digitalClockDisplay(); // 顯示時間
 
     if (dhtBotton == HIGH) {
+      dht.readTemperature();
+      dht.readHumidity();
       for (int positionCounter = 0; positionCounter <= 16; positionCounter++) {
         // scroll one position left:
         lcd.scrollDisplayLeft();
@@ -148,27 +150,27 @@ void digitalClockDisplay() {
 /*顯示溫濕度*/
 void TempHumiDisplay(){
   float h = dht.readHumidity();
-      // Read temperature as Celsius (the default)
-      float t = dht.readTemperature();
-      lcd.clear();
-      if (isnan(h) || isnan(t)) {
-        lcd.println("Read DHT22 failed");
-        lcd.setCursor(11, 1);
-        lcd.print("ERROR");
-        delay(1000);
-      } 
-    else {
-        lcd.print("Temperature");
-        lcd.setCursor(12, 0);
-        lcd.print((int)t);
-        lcd.print((char)0xDF);
-        lcd.print("C");
-        lcd.setCursor(0, 1);
-        lcd.print("Humidity");
-        lcd.setCursor(12, 1);
-        lcd.print((int)h);
-        lcd.setCursor(15, 1);
-        lcd.print("%");
-        delay(2000);
-      }
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  lcd.clear();
+  if (isnan(h) || isnan(t)) {
+       lcd.println("Read DHT22 failed");
+       lcd.setCursor(11, 1);
+       lcd.print("ERROR");
+       delay(1000);
+     } 
+   else {
+       lcd.print("Temperature");
+       lcd.setCursor(12, 0);
+       lcd.print((int)t);
+       lcd.print((char)0xDF);
+       lcd.print("C");
+       lcd.setCursor(0, 1);
+       lcd.print("Humidity");
+       lcd.setCursor(12, 1);
+       lcd.print((int)h);
+       lcd.setCursor(15, 1);
+       lcd.print("%");
+       delay(2000);
+     }
 }
